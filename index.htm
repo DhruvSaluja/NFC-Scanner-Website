@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sal Glucose Monitor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Sal Glucose Monitor</h1>
+<p class="subtitle">Tap NFC sensor to read glucose level</p>
+
+<button onclick="simulateNFC()">Simulate NFC Reading</button>
+
+<button id="scanButton">Scan NFC Sensor</button>
+
+<div class="result">
+<h2>Current Reading</h2>
+<p id="glucoseValue">Waiting for scan...</p>
+</div>
+
+<div class="history">
+<h2>Stored Readings</h2>
+<ul id="historyList"></ul>
+</div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
