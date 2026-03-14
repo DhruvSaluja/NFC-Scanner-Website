@@ -1,30 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<title>Sal Glucose Monitor</title>
+
+<title>Sal BioSensor Monitor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <link rel="stylesheet" href="style.css">
+
 </head>
 
 <body>
 
 <div class="container">
 
-<h1>Sal Glucose Monitor</h1>
-<p class="subtitle">Tap NFC sensor to read glucose level</p>
+<h1>Sal BioSensor Monitor</h1>
 
-<button onclick="simulateNFC()">Simulate NFC Reading</button>
+<p class="subtitle">Scan NFC biosensor</p>
 
 <button id="scanButton">Scan NFC Sensor</button>
 
+<button onclick="simulateNFC()">Simulate Reading</button>
+
+<button onclick="downloadCSV()">Download CSV</button>
+
 <div class="result">
+
 <h2>Current Reading</h2>
-<p id="glucoseValue">Waiting for scan...</p>
+
+<p id="sensorValue">Waiting for scan...</p>
+
 </div>
 
-<div class="history">
+<!-- <div class="history">
+
 <h2>Stored Readings</h2>
+
 <ul id="historyList"></ul>
+
+</div> -->
+
+<div class="graph">
+
+<h2>Real-Time Sensor Graph</h2>
+
+<canvas id="sensorChart"></canvas>
+
 </div>
 
 </div>
@@ -32,4 +56,5 @@
 <script src="script.js"></script>
 
 </body>
+
 </html>

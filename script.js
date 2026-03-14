@@ -1,143 +1,339 @@
 const scanButton = document.getElementById("scanButton");
-const glucoseValue = document.getElementById("glucoseValue");
+
+const sensorValue = document.getElementById("sensorValue");
+
 const historyList = document.getElementById("historyList");
 
-let simulationMode = false;   // TRUE = test without NFC
 
-loadHistory();
 
-/* ================================
-   Scan Button
-================================ */
+/* =====================
+   Chart Initialization
+===================== */
 
-scanButton.addEventListener("click", async () => {
+const ctx = document.getElementById("sensorChart").getContext("2d");
 
-if(simulationMode){
-    simulateNFC();
-    return;
+let sensorChart = new Chart(ctx,{
+
+type:"line",
+
+data:{
+
+labels:[],
+
+datasets:[
+
+{
+label:"Glucose (mg/dL)",
+data:[],
+borderWidth:2,
+tension:0.3
+},
+
+{
+label:"Temperature (°C)",
+data:[],
+borderWidth:2,
+tension:0.3
+},
+
+{
+label:"pH",
+data:[],
+borderWidth:2,
+tension:0.3
 }
 
-if ("NDEFReader" in window) {
+]
 
-    try {
+},
 
-        const ndef = new NDEFReader();
-        await ndef.scan();
-
-        glucoseValue.innerText = "Scanning NFC...";
-
-        ndef.onreading = event => {
-
-            const decoder = new TextDecoder();
-            const record = event.message.records[0];
-            const text = decoder.decode(record.data);
-
-            processSensorData(text);
-
-        };
-
-    } catch(error) {
-
-        glucoseValue.innerText = "NFC Scan Failed";
-
-    }
-
-} else {
-
-    alert("Web NFC not supported on this device");
-
+options:{
+responsive:true
 }
 
 });
 
 
-/* ================================
+
+loadHistory();
+
+
+
+/* =====================
+   NFC Scan
+===================== */
+
+scanButton.addEventListener("click",scanNFC);
+
+
+
+async function scanNFC(){
+
+if(!("NDEFReader" in window)){
+
+alert("NFC not supported");
+
+return;
+
+}
+
+
+
+try{
+
+const ndef=new NDEFReader();
+
+await ndef.scan();
+
+sensorValue.innerText="Scanning NFC...";
+
+
+
+ndef.onreading=event=>{
+
+const decoder=new TextDecoder();
+
+const record=event.message.records[0];
+
+const text=decoder.decode(record.data);
+
+processSensorData(text);
+
+};
+
+}catch(err){
+
+console.log(err);
+
+}
+
+}
+
+
+
+/* =====================
    Process Sensor Data
-================================ */
+===================== */
 
 function processSensorData(payload){
 
 try{
 
-    // Expected format
-    // GLUCOSE:110;UNIT:mg/dL;TIME:2026-03-06
+let parts=payload.split(";");
 
-    let parts = payload.split(";");
+let glucose=parts[0].split(":")[1];
 
-    let glucose = parts[0].split(":")[1];
-    let unit = parts[1].split(":")[1];
-    let time = parts[2].split(":")[1];
+let temp=parts[1].split(":")[1];
 
-    let display = `${glucose} ${unit}`;
+let ph=parts[2].split(":")[1];
 
-    glucoseValue.innerText = display;
+let time=parts[3].split(":")[1];
 
-    saveReading(display,time);
 
-}catch(err){
 
-    glucoseValue.innerText = payload;
+sensorValue.innerHTML=
+
+`Glucose: ${glucose} mg/dL <br>
+Temperature: ${temp} °C <br>
+pH: ${ph}`;
+
+
+
+saveReading(glucose,temp,ph,time);
+
+
+
+}catch{
+
+sensorValue.innerText=payload;
 
 }
 
 }
 
 
-/* ================================
-   Simulation Mode (No NFC needed)
-================================ */
+
+/* =====================
+   Simulation Mode
+===================== */
 
 function simulateNFC(){
 
-let glucose = Math.floor(Math.random()*40)+90;
+let glucose=Math.floor(Math.random()*40)+90;
 
-let payload = `GLUCOSE:${glucose};UNIT:mg/dL;TIME:${new Date().toISOString()}`;
+let temp=(Math.random()*4+28).toFixed(1);
+
+let ph=(Math.random()*0.6+6.8).toFixed(2);
+
+let time=new Date().toLocaleTimeString();
+
+
+
+let payload=
+
+`GLUCOSE:${glucose};TEMP:${temp};PH:${ph};TIME:${time}`;
 
 processSensorData(payload);
 
 }
 
 
-/* ================================
+
+/* =====================
    Save Reading
-================================ */
+===================== */
 
-function saveReading(value,time){
+function saveReading(glucose,temp,ph,time){
 
-let history = JSON.parse(localStorage.getItem("glucoseHistory")) || [];
+let history=JSON.parse(localStorage.getItem("sensorHistory"))||[];
 
-let entry = {
-    value:value,
-    time:time
+let entry={
+
+glucose:glucose,
+temp:temp,
+ph:ph,
+time:time
+
 };
+
+
 
 history.push(entry);
 
-localStorage.setItem("glucoseHistory", JSON.stringify(history));
+localStorage.setItem("sensorHistory",JSON.stringify(history));
+
+
+
+updateGraph(glucose,temp,ph,time);
 
 loadHistory();
 
 }
 
 
-/* ================================
+
+/* =====================
    Load History
-================================ */
+===================== */
 
 function loadHistory(){
 
-let history = JSON.parse(localStorage.getItem("glucoseHistory")) || [];
+let history=JSON.parse(localStorage.getItem("sensorHistory"))||[];
 
 historyList.innerHTML="";
 
-history.reverse().forEach(item=>{
 
-    let li = document.createElement("li");
 
-    li.textContent = `${item.value}  |  ${item.time}`;
+sensorChart.data.labels=[];
 
-    historyList.appendChild(li);
+sensorChart.data.datasets[0].data=[];
+
+sensorChart.data.datasets[1].data=[];
+
+sensorChart.data.datasets[2].data=[];
+
+
+
+history.forEach(item=>{
+
+let li=document.createElement("li");
+
+li.textContent=
+
+`G:${item.glucose} | T:${item.temp}°C | pH:${item.ph} | ${item.time}`;
+
+historyList.appendChild(li);
+
+
+
+sensorChart.data.labels.push(item.time);
+
+sensorChart.data.datasets[0].data.push(parseFloat(item.glucose));
+
+sensorChart.data.datasets[1].data.push(parseFloat(item.temp));
+
+sensorChart.data.datasets[2].data.push(parseFloat(item.ph));
+
+
 
 });
+
+
+
+sensorChart.update();
+
+}
+
+
+
+/* =====================
+   Update Graph
+===================== */
+
+function updateGraph(glucose,temp,ph,time){
+
+sensorChart.data.labels.push(time);
+
+sensorChart.data.datasets[0].data.push(parseFloat(glucose));
+
+sensorChart.data.datasets[1].data.push(parseFloat(temp));
+
+sensorChart.data.datasets[2].data.push(parseFloat(ph));
+
+
+
+sensorChart.update();
+
+}
+
+
+
+/* =====================
+   CSV Download
+===================== */
+
+function downloadCSV(){
+
+let history=JSON.parse(localStorage.getItem("sensorHistory"))||[];
+
+if(history.length===0){
+
+alert("No data available");
+
+return;
+
+}
+
+
+
+let csv="Glucose,Temperature,pH,Time\n";
+
+
+
+history.forEach(item=>{
+
+csv+=`${item.glucose},${item.temp},${item.ph},${item.time}\n`;
+
+});
+
+
+
+let blob=new Blob([csv],{type:"text/csv"});
+
+let url=URL.createObjectURL(blob);
+
+
+
+let a=document.createElement("a");
+
+a.href=url;
+
+a.download="biosensor_readings.csv";
+
+a.click();
+
+
+
+URL.revokeObjectURL(url);
 
 }
